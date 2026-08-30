@@ -1,8 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>No sabo kids — Pantuflas hechas para quedarte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -408,8 +403,6 @@
 
   :focus-visible{outline:2px solid var(--plum); outline-offset:3px;}
 </style>
-</head>
-<body>
 
 <header>
   <div class="nav">
@@ -798,17 +791,41 @@
     closeDrawer();
   });
 
-  // notify form (decorative demo)
-  document.getElementById('notifyForm').addEventListener('submit', (e) => {
+  // notify form — conectado a la función real en Cloudflare
+  const CLOUDFLARE_API_BASE = 'https://nosabokids-store.pages.dev';
+  document.getElementById('notifyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    document.getElementById('notifyNote').textContent = '¡Listo! Te avisaremos cuando lancemos la ropa.';
-    e.target.reset();
+    const form = e.target;
+    const emailInput = form.querySelector('input[type="email"]');
+    const note = document.getElementById('notifyNote');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Enviando...'; }
+
+    try {
+      const res = await fetch(`${CLOUDFLARE_API_BASE}/api/notify-subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput.value.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        note.textContent = '¡Listo! Te avisaremos cuando lancemos la ropa.';
+        form.reset();
+      } else {
+        note.textContent = 'Hubo un problema: ' + (data.error || 'intenta de nuevo.');
+      }
+    } catch (err) {
+      note.textContent = 'No se pudo conectar. Intenta de nuevo en un momento.';
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+    }
   });
 
-  // preorder form (demo — no processes real payment, just captures the commitment)
+  // preorder form — no procesa pago real, pero ahora sí guarda el registro y envía correos reales
   const preorderForm = document.getElementById('preorderForm');
   const preorderConfirm = document.getElementById('preorderConfirm');
-  preorderForm.addEventListener('submit', (e) => {
+  preorderForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('preName').value.trim();
     const email = document.getElementById('preEmail').value.trim();
@@ -816,14 +833,35 @@
     const qty = parseInt(document.getElementById('preQty').value, 10) || 1;
     const total = (qty * 59.99).toFixed(2);
 
-    document.getElementById('confName').textContent = name;
-    document.getElementById('confEmail').textContent = email;
-    document.getElementById('confColor').textContent = color;
-    document.getElementById('confQty').textContent = qty;
-    document.getElementById('confTotal').textContent = '$' + total;
+    const submitBtn = preorderForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Enviando...'; }
 
-    preorderForm.style.display = 'none';
-    preorderConfirm.style.display = 'block';
+    try {
+      const res = await fetch(`${CLOUDFLARE_API_BASE}/api/preorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, color, qty }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert('Hubo un problema al registrar tu preorden: ' + (data.error || 'intenta de nuevo.'));
+        return;
+      }
+
+      document.getElementById('confName').textContent = name;
+      document.getElementById('confEmail').textContent = email;
+      document.getElementById('confColor').textContent = color;
+      document.getElementById('confQty').textContent = qty;
+      document.getElementById('confTotal').textContent = '$' + total;
+
+      preorderForm.style.display = 'none';
+      preorderConfirm.style.display = 'block';
+    } catch (err) {
+      alert('No se pudo conectar. Intenta de nuevo en un momento.');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+    }
   });
   document.getElementById('preorderAgain').addEventListener('click', (e) => {
     e.preventDefault();
@@ -835,6 +873,3 @@
   renderCart();
 })();
 </script>
-
-</body>
-</html>
