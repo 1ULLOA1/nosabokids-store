@@ -1,0 +1,13 @@
+{
+  "name": "no-sabo-kids",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/database": "^1.0.0",
+    "@netlify/functions": "^3.0.0",
+    "drizzle-orm": "beta"
+  },
+  "devDependencies": {
+    "drizzle-kit": "beta"
+  }
+}
