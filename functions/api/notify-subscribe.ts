@@ -47,6 +47,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const body = await request.json<{ email?: string }>();
     const email = (body.email || '').trim().toLowerCase();
 
+    // MODO DIAGNÓSTICO TEMPORAL: escribí "debug" como correo para ver qué variables están disponibles
+    if (email === 'debug') {
+      return new Response(JSON.stringify({ ok: false, error: 'DEBUG keys: ' + JSON.stringify(Object.keys(env)) }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     if (!email || !isValidEmail(email)) {
       return new Response(JSON.stringify({ ok: false, error: 'Correo inválido' }), {
         status: 400,
