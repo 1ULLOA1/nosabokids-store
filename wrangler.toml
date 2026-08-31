@@ -1,0 +1,8 @@
+name = "nosabokids-store"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nosabokids-db"
+database_id = "38d58ace-4828-430d-bb18-b9cc4e3068b5"
