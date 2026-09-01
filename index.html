@@ -371,24 +371,6 @@
   }
   .checkout-note{font-size:11px; color:var(--ink-soft); text-align:center; margin-top:10px;}
 
-  /* confirmation modal */
-  .modal-overlay{
-    position:fixed; inset:0; background:rgba(43,38,34,0.55);
-    display:flex; align-items:center; justify-content:center;
-    opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; padding:20px;
-  }
-  .modal-overlay.open{opacity:1; pointer-events:auto;}
-  .modal{
-    background:var(--bg-card); border-radius:20px; padding:36px; max-width:380px; text-align:center;
-    transform:scale(.95); transition:transform .25s;
-  }
-  .modal-overlay.open .modal{transform:scale(1);}
-  .modal h3{font-size:22px; margin:14px 0 10px;}
-  .modal p{font-size:14px; color:var(--ink-soft); margin-bottom:20px;}
-  .modal button{
-    background:var(--ink); color:var(--bg-card); padding:12px 24px; border-radius:999px; font-size:14px;
-  }
-
   @media (max-width: 860px){
     .hero{grid-template-columns:1fr; padding-top:44px;}
     .values-inner{grid-template-columns:repeat(2,1fr);}
@@ -616,19 +598,9 @@
       <strong id="cartSubtotal" class="mono">$0</strong>
     </div>
     <button class="checkout-btn" id="checkoutBtn">Finalizar compra</button>
-    <p class="checkout-note">Esta es una vista de demostración — aún no procesa pagos reales.</p>
+    <p class="checkout-note">Pago seguro procesado por Stripe.</p>
   </div>
 </aside>
-
-<!-- CONFIRMATION MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E4362E" stroke-width="2" style="margin:0 auto"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
-    <h3>¡Pedido recibido!</h3>
-    <p>Gracias por tu compra en No sabo kids. En una tienda real, aquí llegaría tu confirmación por correo.</p>
-    <button id="modalClose">Seguir viendo</button>
-  </div>
-</div>
 
 <script>
 (function(){
@@ -796,21 +768,46 @@
   document.getElementById('closeCart').addEventListener('click', closeDrawer);
   overlay.addEventListener('click', closeDrawer);
 
-  // checkout modal
-  const modalOverlay = document.getElementById('modalOverlay');
-  document.getElementById('checkoutBtn').addEventListener('click', () => {
-    if(cart.length === 0) return;
-    modalOverlay.classList.add('open');
-  });
-  document.getElementById('modalClose').addEventListener('click', () => {
-    modalOverlay.classList.remove('open');
-    cart = [];
-    renderCart();
-    closeDrawer();
+  // checkout real → Stripe
+  const CLOUDFLARE_API_BASE = 'https://nosabokids-store.pages.dev';
+  document.getElementById('checkoutBtn').addEventListener('click', async () => {
+    if (cart.length === 0) return;
+
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const originalText = checkoutBtn.textContent;
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Redirigiendo a pago...';
+
+    try {
+      const res = await fetch(`${CLOUDFLARE_API_BASE}/api/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            qty: item.qty,
+            price: item.price
+          }))
+        }),
+      });
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url; // redirige a la página de pago de Stripe
+      } else {
+        alert('No se pudo iniciar el pago: ' + (data.error || 'intenta de nuevo.'));
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = originalText;
+      }
+    } catch (err) {
+      alert('No se pudo conectar con el pago. Intenta de nuevo en un momento.');
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = originalText;
+    }
   });
 
   // notify form — conectado a la función real en Cloudflare
-  const CLOUDFLARE_API_BASE = 'https://nosabokids-store.pages.dev';
   document.getElementById('notifyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
