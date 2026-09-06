@@ -769,9 +769,10 @@
   overlay.addEventListener('click', closeDrawer);
 
   // checkout real → Stripe
-  // Usa el mismo dominio de la tienda para evitar bloqueos CORS entre
-  // nosabokids.store y nosabokids-store.pages.dev.
-  const CLOUDFLARE_API_BASE = window.location.origin;
+  // Las funciones (checkout, notify, preorder) viven en Cloudflare Pages
+  // (nosabokids-store.pages.dev), NO en el dominio de la tienda
+  // (nosabokids.store, que es GitHub Pages) — deben apuntar ahí siempre.
+  const CLOUDFLARE_API_BASE = 'https://nosabokids-store.pages.dev';
   document.getElementById('checkoutBtn').addEventListener('click', async () => {
     if (cart.length === 0) return;
 
